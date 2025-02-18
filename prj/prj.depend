@@ -1,7 +1,7 @@
 # depslib dependency file v1.0
-1739717916 source:c:\users\dell\downloads\prj\prj\main.cpp
-	<iostream>
-	<SDL.h>
+1739895826 source:c:\users\dell\downloads\prj\prj\main.cpp
+	"CommonFunc.h"
+	"BaseObject.h"
 
 1739717675 source:c:\users\dell\downloads\prj\prj\test.cpp
 	<SDL.h>
@@ -10,4 +10,21 @@
 1739717916 source:c:\users\dell\desktop\prj\prj\main.cpp
 	<iostream>
 	<SDL.h>
+
+1739894253 source:c:\users\dell\downloads\prj\prj\commonfunc.cpp
+	"CommonFunc.h"
+
+1739895717 c:\users\dell\downloads\prj\prj\commonfunc.h
+	<windows.h>
+	<string>
+	<SDL.h>
+	<SDL_image.h>
+	<SDL_mixer.h>
+	<SDL_ttf.h>
+
+1739894378 source:c:\users\dell\downloads\prj\prj\baseobject.cpp
+	"BaseObject.h"
+
+1739894253 c:\users\dell\downloads\prj\prj\baseobject.h
+	"CommonFunc.h"
 
