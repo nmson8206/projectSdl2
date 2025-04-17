@@ -3,207 +3,264 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
 
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 600;
-const int GROUND_Y = 500;
-
 const int FRAME_WIDTH = 80;
 const int FRAME_HEIGHT = 80;
+const int GROUND_Y = SCREEN_HEIGHT - 100;
+
+SDL_Window* window = nullptr;
+SDL_Renderer* renderer = nullptr;
+SDL_Texture* background = nullptr;
 
 enum PlayerState {
-    IDLE,
-    RUN,
-    JUMP
+    PLAYER_IDLE,
+    PLAYER_RUNNING,
+    PLAYER_JUMPING
 };
 
 struct Player {
-    int x, y;
-    int vx, vy;
-    bool onGround = true;
+    int x = 100, y = GROUND_Y - FRAME_HEIGHT;
+    int vx = 0, vy = 0;
     int frame = 0;
     int frameCounter = 0;
     bool facingRight = true;
-    PlayerState state = IDLE;
+    bool onGround = true;
+    PlayerState state = PLAYER_IDLE;
 
-    std::vector<SDL_Texture*> idleFrames;
-    std::vector<SDL_Texture*> runFrames;
-    std::vector<SDL_Texture*> jumpFrames;
+    vector<SDL_Texture*> idleFrames;
+    vector<SDL_Texture*> runFrames;
+    vector<SDL_Texture*> jumpFrames;
 };
 
-bool initSDL(SDL_Window** window, SDL_Renderer** renderer) {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) return false;
-    if (!IMG_Init(IMG_INIT_PNG)) return false;
+enum EnemyState {
+    ENEMY_FALLING,
+    ENEMY_RUNNING
+};
 
-    *window = SDL_CreateWindow("Samurai Vengeance",
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!*window) return false;
+struct Enemy {
+    int x, y;
+    int vx = 0, vy = 0;
+    int speed = 2;
+    int frame = 0;
+    int frameCounter = 0;
+    bool facingRight = true;
+    bool onGround = false;
+    EnemyState state = ENEMY_FALLING;
 
-    *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
-    return *renderer != nullptr;
-}
+    vector<SDL_Texture*> runFrames;
+    vector<SDL_Texture*> fallingFrames;
+};
 
-SDL_Texture* loadTexture(const std::string& path, SDL_Renderer* renderer) {
-    SDL_Surface* surface = IMG_Load(path.c_str());
-    if (!surface) {
-        std::cerr << "Failed to load " << path << ": " << IMG_GetError() << "\n";
-        return nullptr;
+SDL_Texture* loadTexture(const string& path) {
+    SDL_Texture* tex = IMG_LoadTexture(renderer, path.c_str());
+    if (!tex) {
+        cout << "Failed to load " << path << ": " << IMG_GetError() << endl;
     }
-    SDL_Texture* tex = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_FreeSurface(surface);
     return tex;
 }
 
-void loadFrames(std::vector<SDL_Texture*>& frames, const std::string& prefix, int count, SDL_Renderer* renderer) {
+void loadFrames(vector<SDL_Texture*>& frames, const string& baseName, int count) {
     for (int i = 1; i <= count; ++i) {
-        std::string path = prefix + std::to_string(i) + ".png";
-        SDL_Texture* tex = loadTexture(path, renderer);
+        string path = baseName + to_string(i) + ".png";
+        SDL_Texture* tex = loadTexture(path);
         if (tex) frames.push_back(tex);
-        else std::cerr << "Could not load frame: " << path << "\n";
     }
 }
 
-void loadPlayerFrames(Player& player, SDL_Renderer* renderer) {
-    loadFrames(player.idleFrames, "idle", 6, renderer);
-    loadFrames(player.runFrames, "run", 8, renderer);
-    loadFrames(player.jumpFrames, "jump", 9, renderer);
+void loadPlayerFrames(Player& player) {
+    loadFrames(player.idleFrames, "idle", 6);
+    loadFrames(player.runFrames, "run", 8);
+    loadFrames(player.jumpFrames, "jump", 9);
 }
 
-void handleInput(const Uint8* keystate, Player& player) {
+void loadEnemyFrames(Enemy& enemy) {
+    loadFrames(enemy.fallingFrames, "fall", 6);
+    loadFrames(enemy.runFrames, "ewalk(1)", 8);
+}
+
+void handlePlayerInput(Player& player, const Uint8* keystate) {
     player.vx = 0;
 
     if (keystate[SDL_SCANCODE_A]) {
-        player.vx = -5;
+        player.vx = -4;
         player.facingRight = false;
-    }
-    if (keystate[SDL_SCANCODE_D]) {
-        player.vx = 5;
+        if (player.onGround) player.state = PLAYER_RUNNING;
+    } else if (keystate[SDL_SCANCODE_D]) {
+        player.vx = 4;
         player.facingRight = true;
+        if (player.onGround) player.state = PLAYER_RUNNING;
+    } else if (player.onGround) {
+        player.state = PLAYER_IDLE;
     }
 
     if (keystate[SDL_SCANCODE_SPACE] && player.onGround) {
-        player.vy = -15;
+        player.vy = -20;
         player.onGround = false;
+        player.state = PLAYER_JUMPING;
+        player.frame = 0;
+        player.frameCounter = 0;
     }
 }
 
 void updatePlayer(Player& player) {
     player.x += player.vx;
+    player.vy += 1;
     player.y += player.vy;
-
-    if (!player.onGround) {
-        player.vy += 1; // gravity
-    }
 
     if (player.y >= GROUND_Y - FRAME_HEIGHT) {
         player.y = GROUND_Y - FRAME_HEIGHT;
         player.vy = 0;
         player.onGround = true;
+        if (player.vx == 0) player.state = PLAYER_IDLE;
+        else player.state = PLAYER_RUNNING;
     }
 
-    // Update state
-    if (!player.onGround) {
-        player.state = JUMP;
-    } else if (player.vx != 0) {
-        player.state = RUN;
-    } else {
-        player.state = IDLE;
-    }
-
-    // Frame animation
     player.frameCounter++;
-    int frameDelay = 6;
-
-    if (player.frameCounter >= frameDelay) {
+    int delay = 8;
+    if (player.frameCounter >= delay) {
         player.frameCounter = 0;
-        if (player.state == IDLE) {
+        if (player.state == PLAYER_IDLE && !player.idleFrames.empty())
             player.frame = (player.frame + 1) % player.idleFrames.size();
-        } else if (player.state == RUN) {
+        else if (player.state == PLAYER_RUNNING && !player.runFrames.empty())
             player.frame = (player.frame + 1) % player.runFrames.size();
-        } else if (player.state == JUMP) {
+        else if (player.state == PLAYER_JUMPING && !player.jumpFrames.empty())
             player.frame = (player.frame + 1) % player.jumpFrames.size();
-        }
     }
 }
 
-void renderPlayer(SDL_Renderer* renderer, Player& player) {
+void renderPlayer(const Player& player) {
     SDL_Rect dest = { player.x, player.y, FRAME_WIDTH, FRAME_HEIGHT };
+    SDL_RendererFlip flip = player.facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
 
     SDL_Texture* currentFrame = nullptr;
-    if (player.state == IDLE) {
+    if (player.state == PLAYER_IDLE && !player.idleFrames.empty())
         currentFrame = player.idleFrames[player.frame % player.idleFrames.size()];
-    } else if (player.state == RUN) {
+    else if (player.state == PLAYER_RUNNING && !player.runFrames.empty())
         currentFrame = player.runFrames[player.frame % player.runFrames.size()];
-    } else if (player.state == JUMP) {
+    else if (player.state == PLAYER_JUMPING && !player.jumpFrames.empty())
         currentFrame = player.jumpFrames[player.frame % player.jumpFrames.size()];
-    }
 
-    SDL_RendererFlip flip = player.facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
-    SDL_RenderCopyEx(renderer, currentFrame, nullptr, &dest, 0.0, nullptr, flip);
+    if (currentFrame)
+        SDL_RenderCopyEx(renderer, currentFrame, nullptr, &dest, 0.0, nullptr, flip);
 }
 
-void cleanup(Player& player, SDL_Texture* background) {
-    for (auto tex : player.idleFrames) SDL_DestroyTexture(tex);
-    for (auto tex : player.runFrames) SDL_DestroyTexture(tex);
-    for (auto tex : player.jumpFrames) SDL_DestroyTexture(tex);
+void updateEnemy(Enemy& enemy, const Player& player) {
+    if (!enemy.onGround) {
+        enemy.vy += 1;
+        enemy.y += enemy.vy;
 
-    if (background) SDL_DestroyTexture(background);
+        if (enemy.y >= GROUND_Y - FRAME_HEIGHT) {
+            enemy.y = GROUND_Y - FRAME_HEIGHT;
+            enemy.vy = 0;
+            enemy.onGround = true;
+            enemy.state = ENEMY_RUNNING;
+        } else {
+            enemy.state = ENEMY_FALLING;
+        }
+    }
+
+    if (enemy.state == ENEMY_RUNNING) {
+        if (enemy.x < player.x) {
+            enemy.vx = enemy.speed;
+            enemy.facingRight = true;
+        } else if (enemy.x > player.x) {
+            enemy.vx = -enemy.speed;
+            enemy.facingRight = false;
+        } else {
+            enemy.vx = 0;
+        }
+        enemy.x += enemy.vx;
+    }
+
+    enemy.frameCounter++;
+    int delay = (enemy.state == ENEMY_RUNNING) ? 12 : 15;
+    if (enemy.frameCounter >= delay) {
+        enemy.frameCounter = 0;
+        if (enemy.state == ENEMY_RUNNING && !enemy.runFrames.empty())
+            enemy.frame = (enemy.frame + 1) % enemy.runFrames.size();
+        else if (enemy.state == ENEMY_FALLING && !enemy.fallingFrames.empty())
+            enemy.frame = (enemy.frame + 1) % enemy.fallingFrames.size();
+    }
+}
+
+void renderEnemy(const Enemy& enemy) {
+    SDL_Rect dest = { enemy.x, enemy.y, FRAME_WIDTH, FRAME_HEIGHT };
+    SDL_RendererFlip flip = enemy.facingRight ? SDL_FLIP_NONE : SDL_FLIP_HORIZONTAL;
+
+    SDL_Texture* currentFrame = nullptr;
+    if (enemy.state == ENEMY_RUNNING && !enemy.runFrames.empty())
+        currentFrame = enemy.runFrames[enemy.frame % enemy.runFrames.size()];
+    else if (enemy.state == ENEMY_FALLING && !enemy.fallingFrames.empty())
+        currentFrame = enemy.fallingFrames[enemy.frame % enemy.fallingFrames.size()];
+
+    if (currentFrame)
+        SDL_RenderCopyEx(renderer, currentFrame, nullptr, &dest, 0.0, nullptr, flip);
 }
 
 int main(int argc, char* argv[]) {
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
-    if (!initSDL(&window, &renderer)) return -1;
+    SDL_Init(SDL_INIT_VIDEO);
+    IMG_Init(IMG_INIT_PNG);
 
-    // Load background
-    SDL_Texture* background = loadTexture("background.png", renderer);
+    window = SDL_CreateWindow("Enemy Falling Test", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+
+    background = loadTexture("background.png");
     if (!background) {
-        std::cerr << "Could not load background\n";
+        cout << "Could not load background" << endl;
     }
 
-    Player player = {400, GROUND_Y - FRAME_HEIGHT, 0, 0};
-    loadPlayerFrames(player, renderer);
+    srand(static_cast<unsigned int>(time(nullptr)));
 
-    if (player.idleFrames.empty() || player.runFrames.empty() || player.jumpFrames.empty()) {
-        std::cerr << "Failed to load all animation frames.\n";
-        cleanup(player, background);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        IMG_Quit();
-        SDL_Quit();
-        return -1;
-    }
+    Player player;
+    loadPlayerFrames(player);
 
-    bool quit = false;
+    Enemy enemy = { rand() % (SCREEN_WIDTH - FRAME_WIDTH), -FRAME_HEIGHT };
+    loadEnemyFrames(enemy);
+
+    bool running = true;
     SDL_Event e;
 
-    while (!quit) {
+    while (running) {
+        const Uint8* keystate = SDL_GetKeyboardState(nullptr);
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) quit = true;
+            if (e.type == SDL_QUIT) running = false;
         }
 
-        const Uint8* keystate = SDL_GetKeyboardState(NULL);
-        handleInput(keystate, player);
+        handlePlayerInput(player, keystate);
         updatePlayer(player);
+        updateEnemy(enemy, player);
+
         SDL_RenderClear(renderer);
 
-        // Vẽ background trước
         if (background) {
             SDL_RenderCopy(renderer, background, nullptr, nullptr);
         }
 
-        // Sau đó vẽ player
-        renderPlayer(renderer, player);
-
+        renderPlayer(player);
+        renderEnemy(enemy);
         SDL_RenderPresent(renderer);
-        SDL_Delay(16); // ~60 FPS
+
+        SDL_Delay(16);
     }
 
-    cleanup(player, background);
+    for (auto tex : player.idleFrames) SDL_DestroyTexture(tex);
+    for (auto tex : player.runFrames) SDL_DestroyTexture(tex);
+    for (auto tex : player.jumpFrames) SDL_DestroyTexture(tex);
+    for (auto tex : enemy.runFrames) SDL_DestroyTexture(tex);
+    for (auto tex : enemy.fallingFrames) SDL_DestroyTexture(tex);
+
+    if (background) SDL_DestroyTexture(background);
+
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     IMG_Quit();
     SDL_Quit();
+
     return 0;
 }

@@ -1,10 +1,12 @@
 # depslib dependency file v1.0
-1744558615 source:c:\users\dell\downloads\prj\prj\main.cpp
+1744810674 source:c:\users\dell\downloads\prj\prj\main.cpp
 	<SDL.h>
 	<SDL_image.h>
 	<iostream>
 	<vector>
 	<string>
+	<cstdlib>
+	<ctime>
 
 1739717675 source:c:\users\dell\downloads\prj\prj\test.cpp
 	<SDL.h>
