@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdlib>
 #include <ctime>
+#include <SDL_mixer.h>
 
 using namespace std;
 
@@ -22,7 +23,7 @@ enum PlayerState {
     PLAYER_IDLE,
     PLAYER_RUNNING,
     PLAYER_JUMPING,
-    PLAYER_ATTACKING
+    PLAYER_ATTACKING,
 };
 
 struct Player {
@@ -50,7 +51,8 @@ struct Player {
 
 enum EnemyState {
     ENEMY_FALLING,
-    ENEMY_RUNNING
+    ENEMY_RUNNING,
+    ENEMY_DEAD
 };
 
 struct Enemy {
@@ -62,7 +64,10 @@ struct Enemy {
     bool facingRight = true;
     bool onGround = false;
     EnemyState state = ENEMY_FALLING;
+    bool isHit = false;
+    Uint32 hitTime = 0;
 
+    vector<SDL_Texture*> deadFrames;
     vector<SDL_Texture*> runFrames;
     vector<SDL_Texture*> fallingFrames;
 };
@@ -95,6 +100,7 @@ void loadPlayerFrames(Player& player) {
 void loadEnemyFrames(Enemy& enemy) {
     loadFrames(enemy.fallingFrames, "fall", 6);
     loadFrames(enemy.runFrames, "ewalk(1)", 8);
+    loadFrames(enemy.deadFrames, "edead", 6);
 }
 
 void handlePlayerInput(Player& player, const Uint8* keystate) {
@@ -135,7 +141,7 @@ void handlePlayerInput(Player& player, const Uint8* keystate) {
 }
 
 
-void updatePlayer(Player& player) {
+void updatePlayer(Player& player, Enemy& enemy) {
     player.x += player.vx;
     player.vy += 1;
     player.y += player.vy;
@@ -158,6 +164,21 @@ void updatePlayer(Player& player) {
     if (player.state == PLAYER_ATTACKING){
         if (player.comboStep == 2){
             delay = 4;
+        }
+    }
+    if (player.isAttacking){
+        SDL_Rect attackRect = {
+            player.facingRight ? player.x + FRAME_WIDTH / 2 : player.x - FRAME_WIDTH / 2,
+            player.y,
+            FRAME_WIDTH,
+            FRAME_HEIGHT
+        };
+        SDL_Rect enemyRect = { enemy.x, enemy.y, FRAME_WIDTH, FRAME_HEIGHT};
+        if (SDL_HasIntersection(&attackRect, &enemyRect)) {
+            enemy.state = ENEMY_DEAD;
+            enemy.frame = 0;
+            enemy.frameCounter = 0;
+            enemy.vx = 0;
         }
     }
     if (player.frameCounter >= delay) {
@@ -221,6 +242,23 @@ void renderPlayer(const Player& player) {
 
 
 void updateEnemy(Enemy& enemy, const Player& player) {
+    if (enemy.state == ENEMY_DEAD) {
+        enemy.frameCounter++;
+        if (enemy.frameCounter >= 2) {
+            enemy.frameCounter = 0;
+            if (!enemy.deadFrames.empty())
+                enemy.frame++;
+            if (enemy.frame >= enemy.deadFrames.size()){
+                enemy.x = rand() % (SCREEN_WIDTH - FRAME_WIDTH);
+                enemy.y = -FRAME_HEIGHT;
+                enemy.vy = 0;
+                enemy.onGround = false;
+                enemy.state = ENEMY_FALLING;
+                enemy.frame = 0;
+            }
+        }
+        return;
+    }
     if (!enemy.onGround) {
         enemy.vy += 1;
         enemy.y += enemy.vy;
@@ -268,6 +306,8 @@ void renderEnemy(const Enemy& enemy) {
         currentFrame = enemy.runFrames[enemy.frame % enemy.runFrames.size()];
     else if (enemy.state == ENEMY_FALLING && !enemy.fallingFrames.empty())
         currentFrame = enemy.fallingFrames[enemy.frame % enemy.fallingFrames.size()];
+    else if (enemy.state == ENEMY_DEAD && !enemy.deadFrames.empty())
+        currentFrame = enemy.deadFrames[enemy.frame % enemy.deadFrames.size()];
 
     if (currentFrame)
         SDL_RenderCopyEx(renderer, currentFrame, nullptr, &dest, 0.0, nullptr, flip);
@@ -276,6 +316,9 @@ void renderEnemy(const Enemy& enemy) {
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
     IMG_Init(IMG_INIT_PNG);
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
+    cout << "SDL_mixer could not initialize! SDL_mixer Error: " << Mix_GetError() << endl;
+}
 
     window = SDL_CreateWindow("Samurai Vengeance", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
@@ -284,6 +327,12 @@ int main(int argc, char* argv[]) {
     if (!background) {
         cout << "Could not load background" << endl;
     }
+    Mix_Music* bgMusic = Mix_LoadMUS("bg_music.mp3");
+    if (!bgMusic) {
+    cout << "Failed to load background music: " << Mix_GetError() << endl;
+    } else {
+    Mix_PlayMusic(bgMusic, -1);
+    }
 
     srand(static_cast<unsigned int>(time(nullptr)));
 
@@ -291,6 +340,7 @@ int main(int argc, char* argv[]) {
     loadPlayerFrames(player);
 
     Enemy enemy = { rand() % (SCREEN_WIDTH - FRAME_WIDTH), -FRAME_HEIGHT };
+
     loadEnemyFrames(enemy);
 
     bool running = true;
@@ -303,7 +353,7 @@ int main(int argc, char* argv[]) {
         }
 
         handlePlayerInput(player, keystate);
-        updatePlayer(player);
+        updatePlayer(player, enemy);
         updateEnemy(enemy, player);
 
         SDL_RenderClear(renderer);
@@ -327,9 +377,12 @@ int main(int argc, char* argv[]) {
     for (auto tex : player.attack3Frames) SDL_DestroyTexture(tex);
     for (auto tex : enemy.runFrames) SDL_DestroyTexture(tex);
     for (auto tex : enemy.fallingFrames) SDL_DestroyTexture(tex);
+    for (auto tex : enemy.deadFrames) SDL_DestroyTexture(tex);
 
     if (background) SDL_DestroyTexture(background);
 
+    Mix_FreeMusic(bgMusic);
+    Mix_CloseAudio();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     IMG_Quit();
