@@ -36,7 +36,17 @@
 		<Unit filename="BaseObject.h" />
 		<Unit filename="CommonFunc.cpp" />
 		<Unit filename="CommonFunc.h" />
+		<Unit filename="bien.cpp" />
+		<Unit filename="bien.h" />
+		<Unit filename="enemy.cpp" />
+		<Unit filename="enemy.h" />
+		<Unit filename="game.cpp" />
+		<Unit filename="game.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="player.cpp" />
+		<Unit filename="player.h" />
+		<Unit filename="tien_ich.cpp" />
+		<Unit filename="tien_ich.h" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>

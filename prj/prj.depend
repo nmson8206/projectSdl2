@@ -1,12 +1,10 @@
 # depslib dependency file v1.0
-1745507657 source:c:\users\dell\downloads\prj\prj\main.cpp
-	<SDL.h>
-	<SDL_image.h>
-	<iostream>
-	<vector>
-	<string>
-	<cstdlib>
-	<ctime>
+1747720215 source:c:\users\dell\downloads\prj\prj\main.cpp
+	"bien.h"
+	"player.h"
+	"enemy.h"
+	"tien_ich.h"
+	"game.h"
 
 1739717675 source:c:\users\dell\downloads\prj\prj\test.cpp
 	<SDL.h>
@@ -33,12 +31,69 @@
 1741315566 c:\users\dell\downloads\prj\prj\baseobject.h
 	"CommonFunc.h"
 
-1744124313 c:\users\dell\downloads\prj\prj\player.h
+1747719870 c:\users\dell\downloads\prj\prj\player.h
+	"bien.h"
+	"enemy.h"
+	"game.h"
+	"tien_ich.h"
+
+1747720002 source:c:\users\dell\downloads\prj\prj\player.cpp
+	"player.h"
+	"enemy.h"
+	"game.h"
+	"tien_ich.h"
+	"bien.h"
+
+1747717719 source:c:\users\dell\downloads\prj\prj\bien.cpp
+	"bien.h"
+
+1747717661 c:\users\dell\downloads\prj\prj\bien.h
 	<SDL.h>
 	<SDL_image.h>
-	<string>
-
-1744124237 source:c:\users\dell\downloads\prj\prj\player.cpp
-	"Player.h"
 	<iostream>
+	<vector>
+	<string>
+	<cstdlib>
+	<ctime>
+	<SDL_mixer.h>
+	<SDL_ttf.h>
+	<fstream>
+
+1747720297 c:\users\dell\downloads\prj\prj\enemy.h
+	"bien.h"
+	"game.h"
+	"tien_ich.h"
+
+1747720269 c:\users\dell\downloads\prj\prj\game.h
+	"bien.h"
+	"player.h"
+	"enemy.h"
+	"game.h"
+
+1747719926 c:\users\dell\downloads\prj\prj\tien_ich.h
+	"bien.h"
+	"player.h"
+	"enemy.h"
+	"game.h"
+
+1747720002 source:c:\users\dell\downloads\prj\prj\game.cpp
+	"player.h"
+	"enemy.h"
+	"game.h"
+	"tien_ich.h"
+	"bien.h"
+
+1747720190 source:c:\users\dell\downloads\prj\prj\enemy.cpp
+	"player.h"
+	"enemy.h"
+	"game.h"
+	"tien_ich.h"
+	"bien.h"
+
+1747720190 source:c:\users\dell\downloads\prj\prj\tien_ich.cpp
+	"player.h"
+	"enemy.h"
+	"game.h"
+	"tien_ich.h"
+	"bien.h"
 
