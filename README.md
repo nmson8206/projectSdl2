@@ -18,19 +18,33 @@ https://www.youtube.com/results?search_query=thunder+sfx
 Có sử dụng AI để debug, giải thích 1 số phần
 # Checklist
 Dùng các lệnh vẽ hình
+
 Texture
+
 Background
+
 Event bàn phím
+
 Event chuột
+
 Animation (hoạt hình)
+
 Xử lý va chạm
-Score (có tính điểm)
+
+Score
+
 Lưu điểm
+
 Sound
+
 Sound on off
+
 Background music
+
 Font
+
 Menu
+
 1 số tính năng khác:
 + Va chạm
 + Skill
