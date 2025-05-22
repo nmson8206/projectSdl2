@@ -6,13 +6,21 @@ Nguyễn Minh Sơn - 24021614
 Game tính điểm dựa trên số lần tiêu diệt quái vật
 # Nguồn tham khảo
 Code:
+
 https://lazyfoo.net/tutorials/SDL/index.php
+
 https://www.youtube.com/c/Ph%C3%A1tTri%E1%BB%83nPh%E1%BA%A7nM%E1%BB%81m123AZ
+
 Assets 
+
 https://craftpix.net/ (tự vẽ 1 vài animaion)
+
 https://dota2.fandom.com/wiki/Category:Ability_icons
+
 https://www.youtube.com/watch?v=4bJI-e28kFg
+
 https://www.youtube.com/watch?v=u2wuHjLajSY
+
 https://www.youtube.com/results?search_query=thunder+sfx
 # Mức độ sử dụng AI
 Có sử dụng AI để debug, giải thích 1 số phần
